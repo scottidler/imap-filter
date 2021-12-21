@@ -1,13 +1,15 @@
+imap-domain: imap.gmail.com
+imap-username: scott.idler@tatari.tv
 filters:
 - only-me-star:
-    to: scott.idler@tatari.tv
-    cc: ''
-    from: '*@tatari.tv'
+    to: ['scott.idler@tatari.tv']
+    cc: []
+    fr: '*@tatari.tv'
     move: Imbox
     star: True
 - only-me:
-    to: scott.idler@tatari.tv
-    from: '*@tatari.tv'
+    to: ['scott.idler@tatari.tv']
+    fr: '*@tatari.tv'
     move: Imbox
     star: False
 folders:
