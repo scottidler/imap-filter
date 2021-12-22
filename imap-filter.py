@@ -56,9 +56,9 @@ def compare(test, items):
         return test == items
     return any([fnmatch(item, test) for item in items])
 
-class ScalarToMultipleError(Exception):
+class ListifyError(Exception):
     def __init__(self, obj):
-        msg = f'scalar to multiple error on obj={obj}'
+        msg = f'listify error on obj={obj}'
         super().__init__(msg)
 
 def listify(obj):
@@ -70,7 +70,7 @@ def listify(obj):
         return list(obj)
     if isinstance(obj, list):
         return obj
-    raise ScalarToMultipleError(obj)
+    raise ListifyError(obj)
 
 def ensure_defaults(obj, matches=1):
     return Addict(
@@ -159,7 +159,11 @@ class Message:
 
 class IMAPFilter:
     def __init__(self, imap_domain=None, imap_username=None, imap_password=None, filters=None, folders=None, **kwargs):
-        self.filters = filters
+        self.filters = [
+            Message(f)
+            for f
+            in filters
+        ]
         self.folders = folders
         self.client = IMAPClient(imap_domain)
         self.client.login(imap_username, imap_password)
@@ -177,25 +181,20 @@ class IMAPFilter:
             in enumerate(self.client.fetch(ids, 'RFC822').items())
         ]
 
-    @property
-    def message_filters(self):
-        return [
-            MessageFilter(f)
-            for f
-            in self.filters
-        ]
-
     def compare_message(self, message, message_filter):
-        if message_filter.to
+        if message_filter.to and message_filter.to != {}:
+            pass
 
     def apply_filter(self, messages, message_filter):
         for message in messages:
+            if self.compare_message(message, message_filter):
+                pass
 
         return messages
 
     def execute(self):
         messages = self.messages
-        for mf in self.message_filters:
+        for mf in self.filters:
             messages = self.apply_filter(mf, messages)
         self.client.shutdown()
         print('execution complete')
