@@ -165,8 +165,11 @@ class MessageFilter:
             return False
         return True
 
-    def apply(self, message):
-        return self.compare(message)
+#    def apply(self, message, client):
+#        if self.compare(message):
+#            client.copy
+#            return True
+#        return False
 
 class Message:
     def __init__(self, count, uid, data):
@@ -259,12 +262,18 @@ class IMAPFilter:
         ]
 
     def apply_filter(self, message_filter, messages):
-        return [
+        filtered = [
             message
             for message
             in messages
-            if message_filter.apply(message)
+            if message_filter.compare(message)
         ]
+        if message_filter.move:
+            self.client.move([m.uid for m in filtered], message_filter.move)
+        #if message_filter.star:
+        #    self.client.set_gmail_labels([m.uid for m in filtered], '\\Starred')
+
+        return filtered
 
     def execute(self):
         messages = self.messages
