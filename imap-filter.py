@@ -268,10 +268,18 @@ class IMAPFilter:
             in messages
             if message_filter.compare(message)
         ]
-        if message_filter.move:
-            self.client.move([m.uid for m in filtered], message_filter.move)
-        #if message_filter.star:
-        #    self.client.set_gmail_labels([m.uid for m in filtered], '\\Starred')
+        if filtered:
+            uids = [
+                m.uid
+                for m
+                in filtered
+            ]
+            if message_filter.move:
+                logging.info(f'move uids={uids} to {message_filter.move}')
+                self.client.move(uids, message_filter.move)
+            if message_filter.star:
+                logging.info(f'star uids={uids} with "\\Starred"')
+                self.client.set_gmail_labels(uids, '\\Starred')
 
         return filtered
 
