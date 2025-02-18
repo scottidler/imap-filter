@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "imap-filter"
+version = "0.1.0"
+description = "IMAP email filtering CLI"
+authors = ["Scott Idler <scott.a.idler@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.scripts]
+imap-filter = "imap_filter.main:main"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+argparse = "^1.4.0"
+#imapclient = "^2.3.1"
+imapclient = "3.0.1"
+loguru = "^0.7.2"
+"ruamel.yaml" = "^0.18.10"
+leatherman = "^0.2.0"
+prettyprint = "^0.1.5"
+
+[poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
