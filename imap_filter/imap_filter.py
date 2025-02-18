@@ -17,7 +17,7 @@ class IMAPFilter:
     def get_imap_client(self):
         client = IMAPClient(self.imap_domain)
         client.login(self.imap_username, self.imap_password)
-        client.select_folder("INBOX")
+        client.select_folder("INBOX", readonly=False)
         return client
 
     def fetch_messages(self):
@@ -37,7 +37,7 @@ class IMAPFilter:
 
     def move_imbox_to_inbox(self):
         """Moves all messages from Imbox back to Inbox for retesting."""
-        self.client.select_folder("Imbox")
+        self.client.select_folder("Imbox", readonly=False)
         message_uids = self.client.search(["ALL"])
         if not message_uids:
             print("No messages in Imbox to move.")
@@ -50,37 +50,32 @@ class IMAPFilter:
     def apply_filters(self, messages):
         """Applies filters in sequence, ensuring first match wins."""
         for message_filter in self.filters:
-            matched_messages = [msg for msg in messages if message_filter.compare(msg)]
-
-            if matched_messages:
+            matched_messages, uids = zip(
+                *[(msg, msg.uid) for msg in messages if message_filter.compare(msg)]
+            )
+            if uids:
                 if message_filter.move:
-                    self.move(matched_messages, message_filter.move)
+                    self.move(uids, message_filter.move)
 
                 if message_filter.star:
-                    self.star(matched_messages)
+                    self.star(uids)
 
                 if message_filter.mark:
-                    self.mark(matched_messages)
+                    self.mark(uids)
 
             messages = [msg for msg in messages if msg not in matched_messages]
 
-    def star(self, msgs):
-        if msgs:
-            result = self.client.add_gmail_labels([msg.uid for msg in msgs], ["\\Starred"], silent=False)
-            print('*'*80)
-            print("RESULT:", result)
-            print('*'*80)
+    def star(self, uids):
+        if uids:
+            self.client.add_gmail_labels(uids, ["\\Starred"])
 
-    def mark(self, msgs):
-        if msgs:
-            result = self.client.add_gmail_labels([msg.uid for msg in msgs], ["\\Important"], silent=False)
-            print('*'*80)
-            print("RESULT:", result)
-            print('*'*80)
+    def mark(self, uids):
+        if uids:
+             self.client.add_gmail_labels(uids, ['\\Important'], silent=False)
 
-    def move(self, msgs, location):
-        if msgs:
-            self.client.move([msg.uid for msg in msgs], location)
+    def move(self, uids, location):
+        if uids:
+            self.client.move(uids, location)
 
     def execute(self):
         self.move_imbox_to_inbox()
