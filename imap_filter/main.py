@@ -1,10 +1,13 @@
 import os
+import sys
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from ruamel.yaml import YAML
 from imap_filter.imap_filter import IMAPFilter
 from leatherman.dictionary import head_body
+from loguru import logger
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+LOG_FILE = os.path.join(BASE_DIR, "../imap-filter.log")
 
 IMAP_DOMAIN = os.getenv("IMAP_DOMAIN")
 IMAP_USERNAME = os.getenv("IMAP_USERNAME")
@@ -12,12 +15,15 @@ IMAP_PASSWORD = os.getenv("IMAP_PASSWORD")
 
 yaml = YAML()
 
+# Configure logging
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logger.remove()
+logger.add(LOG_FILE, level=LOG_LEVEL, rotation="10MB", retention="7 days")
+
 def ensure_list(value):
     """Ensure that a YAML value is always a list."""
     if isinstance(value, list):
-        return value
-    elif isinstance(value, str):
-        return [value]
+        return value if isinstance(value, list) else [value]
     return []
 
 def load_config(config_path):
@@ -25,12 +31,14 @@ def load_config(config_path):
     config_path = os.path.abspath(config_path)
 
     if not os.path.isfile(config_path):
+        logger.error(f"Config file not found: {config_path}")
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
     with open(config_path, "r") as f:
         config = yaml.load(f) or {}
 
     if not config.get("filters"):
+        logger.error(f"Config file {config_path} is missing required 'filters' section.")
         raise ValueError(f"Config file {config_path} is missing required 'filters' section.")
 
     return config
@@ -64,7 +72,10 @@ def main():
         filters = ns.filters
 
         if not filters:
+            logger.error("No filters found in configuration. Exiting.")
             raise ValueError("No filters found in configuration. Exiting.")
+
+        logger.info(f"Starting IMAP filter on {ns.imap_domain} as {ns.imap_username}")
 
         imap_filter = IMAPFilter(
             ns.imap_domain,
@@ -73,13 +84,12 @@ def main():
             filters
         )
 
-        print(f"Executing IMAP filter on {ns.imap_domain} as {ns.imap_username}...")
         imap_filter.execute()
-        print("Filtering completed.")
+        logger.info("Filtering completed.")
 
     except Exception as e:
-        print(f"ERROR: {e}")
-        exit(1)
+        logger.exception(f"ERROR: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
