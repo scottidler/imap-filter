@@ -4,15 +4,41 @@ from imap_filter.message_filter import MessageFilter
 from ruamel.yaml import YAML
 from loguru import logger
 
+def print_filtered_summary(message_filter, matched_messages):
+    """
+    Prints a summary of filtered messages with actions taken.
+
+    Args:
+        message_filter (MessageFilter): The filter that was applied.
+        matched_messages (list of Message): List of messages that matched the filter.
+    """
+    action_icons = {
+        "star": "⭐",
+        "mark": "✅",
+        "move": "➡️"
+    }
+
+    print("\nFiltered Messages Summary:")
+
+    for msg in matched_messages:
+        actions = []
+        if message_filter.star:
+            actions.append(action_icons["star"])
+        if message_filter.mark:
+            actions.append(action_icons["mark"])
+        if message_filter.move:
+            actions.append(f"{action_icons['move']} {message_filter.move}")
+
+        subject = msg.sub[:76]
+        print(f"- {subject} {' '.join(actions)}")
+
 class IMAPFilter:
     def __init__(self, imap_domain: str, imap_username: str, imap_password: str, filters=None, **yargs):
         self.imap_domain = imap_domain
         self.imap_username = imap_username
         self.imap_password = imap_password
         self.filters = [MessageFilter(f) for f in (filters or [])]
-
         logger.info(f"Filters loaded: {self.filters}")
-
         self.client = self.get_imap_client()
         logger.debug(f"IMAP Capabilities: {self.client.capabilities()}")
 
@@ -78,6 +104,7 @@ class IMAPFilter:
 
                 matched = len(uids)
                 print(f"{matched}/{count} messages filtered after completing {message_filter.name}. {count-matched} remaining.")
+                print_filtered_summary(message_filter, matc)
             messages = [msg for msg in messages if msg not in matched_messages]
 
     def star(self, uids):

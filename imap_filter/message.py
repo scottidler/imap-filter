@@ -24,7 +24,7 @@ class Message:
         to = extract_emails(parsed_email.get_all("To", []))
         cc = extract_emails(parsed_email.get_all("Cc", []))
 
-        sub = parsed_email.get("Subject", "").strip()
+        sub = "".join(parsed_email.get("Subject", "").splitlines()).strip()
         date_header = parsed_email.get("Date")
         date = parsedate_to_datetime(date_header) if date_header else None
 

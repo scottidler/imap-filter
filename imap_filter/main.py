@@ -15,7 +15,6 @@ IMAP_PASSWORD = os.getenv("IMAP_PASSWORD")
 
 yaml = YAML()
 
-# Configure logging
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logger.remove()
 logger.add(LOG_FILE, level=LOG_LEVEL, rotation="10MB", retention="7 days")

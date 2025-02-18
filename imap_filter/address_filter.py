@@ -16,7 +16,6 @@ class AddressFilter:
             raise AddressFilterError(spec)
 
     def compare(self, addresses):
-        #print(f"Comparing addresses: {addresses} against patterns: {self.patterns}")
         if self.patterns == [] and addresses == []:
             return True
         return any(fnmatch.fnmatch(addr.lower(), pattern.lower()) for addr in addresses for pattern in self.patterns)
