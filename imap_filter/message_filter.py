@@ -5,11 +5,25 @@ from leatherman.dictionary import head_body
 
 pp = pprint.PrettyPrinter(indent=4, depth=2)
 
+class ListifyError(Exception):
+    def __init__(self, obj):
+        msg = f'Error: listify given {obj} of type {type(obj)}'
+        super().__init__(msg)
+
+def listify(obj):
+    if isinstance(obj, list):
+        return obj
+    if isinstance(obj, str):
+        return [obj]
+    raise ListifyError(obj)
+
 class MessageFilter:
     def __init__(self, spec):
         name, body = head_body(spec)
         self.name = name
-        self.fr = AddressFilter(body["from"]) if "from" in body else None
+        self.folder = body.get("folder", "INBOX")
+        self.query = listify(body.get("query", "ALL"))
+        self.fr = AddressFilter(listify(body["from"])) if "from" in body else None
         self.to = AddressFilter(body["to"]) if "to" in body else None
         self.cc = AddressFilter(body["cc"]) if "cc" in body else None
         self.star = body.get("star", False)
@@ -26,9 +40,10 @@ class MessageFilter:
         return True
 
     def __str__(self):
-        """String representation for printing the filter details."""
         return (
             f"\nApplying filter: {self.name}\n"
+            f"  folder: {self.folder}\n"
+            f"  query: {self.query}\n"
             f"  from: {self.fr.patterns if self.fr else '[]'}\n"
             f"  to: {self.to.patterns if self.to else '[]'}\n"
             f"  cc: {self.cc.patterns if self.cc else '[]'}\n"

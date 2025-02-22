@@ -19,7 +19,6 @@ def print_filtered_summary(message_filter, matched_messages):
     }
 
     print("\nFiltered Messages Summary:")
-
     for msg in matched_messages:
         actions = []
         if message_filter.star:
@@ -28,7 +27,6 @@ def print_filtered_summary(message_filter, matched_messages):
             actions.append(action_icons["mark"])
         if message_filter.move:
             actions.append(f"{action_icons['move']} {message_filter.move}")
-
         subject = msg.sub[:76]
         print(f"- {subject} {' '.join(actions)}")
 
@@ -48,17 +46,19 @@ class IMAPFilter:
         client.select_folder("INBOX", readonly=False)
         return client
 
-    def fetch_messages(self):
-        self.client.select_folder("INBOX")
-        message_uids = self.client.search(["ALL"])
-
+    def fetch_messages(self, folder="INBOX", query=["ALL"]):
+        """
+        Fetches messages from the specified folder matching the given query.
+        `query` should be a list of IMAP search criteria.
+        """
+        logger.info(f"Fetching messages from folder {folder} with query {query}")
+        self.client.select_folder(folder)
+        message_uids = self.client.search(query)
         if not message_uids:
-            logger.info("No messages found.")
+            logger.info(f"No messages found in {folder} matching {query}.")
             return []
-
         logger.info(f"Fetching {len(message_uids)} messages...")
         messages = self.client.fetch(message_uids, ["RFC822"])
-
         return [
             Message.from_email_message(uid, data[b"RFC822"])
             for uid, data in messages.items()
@@ -72,22 +72,30 @@ class IMAPFilter:
         if not message_uids:
             logger.info("No messages in Imbox to move.")
             return
-
         logger.info(f"Moving {len(message_uids)} messages from Imbox to Inbox...")
         self.client.move(message_uids, "INBOX")
         logger.info("Move completed.")
 
-    def apply_filters(self, messages):
+    def apply_filters(self):
+        """
+        Processes each filter as an ACL. For each filter, if the folder and query
+        are the same as the previous filter, use the remaining unfiltered messages;
+        otherwise, execute a new fetch.
+        """
+        current_folder = None
+        current_query = None
+        messages = []
 
         for message_filter in self.filters:
+            if (message_filter.folder != current_folder or message_filter.query != current_query) or messages is None:
+                current_folder = message_filter.folder
+                current_query = message_filter.query
+                messages = self.fetch_messages(current_folder, current_query)
             count = len(messages)
             print(f"\nAgainst {count} messages {message_filter}")
-
-            matched_messages, uids = zip(
-                *[(msg, msg.uid) for msg in messages if message_filter.compare(msg)]
-            )
-
-            if uids:
+            matched = [(msg, msg.uid) for msg in messages if message_filter.compare(msg)]
+            if matched:
+                matched_messages, uids = zip(*matched)
                 logger.info(f"Filter '{message_filter.name}' matched UIDs: {uids}")
 
                 if message_filter.move:
@@ -102,10 +110,12 @@ class IMAPFilter:
                     logger.info(f"Marking messages {uids}")
                     self.mark(uids)
 
-                matched = len(uids)
-                print(f"{matched}/{count} messages filtered after completing {message_filter.name}. {count-matched} remaining.")
+                matched_count = len(uids)
+                print(f"{matched_count}/{count} messages filtered after completing {message_filter.name}. {count - matched_count} unmatched.")
                 print_filtered_summary(message_filter, matched_messages)
-            messages = [msg for msg in messages if msg not in matched_messages]
+                messages = [msg for msg in messages if msg not in [m for m, _ in matched]]
+            else:
+                logger.info(f"No messages matched filter '{message_filter.name}'.")
 
     def star(self, uids):
         if uids:
@@ -127,6 +137,4 @@ class IMAPFilter:
             self.client.move(uids, location)
 
     def execute(self):
-        self.move_imbox_to_inbox()
-        messages = self.fetch_messages()
-        return self.apply_filters(messages)
+        return self.apply_filters()

@@ -8,12 +8,7 @@ class AddressFilterError(Exception):
 
 class AddressFilter:
     def __init__(self, spec):
-        if isinstance(spec, str):
-            self.patterns = [spec]
-        elif isinstance(spec, list):
-            self.patterns = spec
-        else:
-            raise AddressFilterError(spec)
+        self.patterns = spec
 
     def compare(self, addresses):
         if self.patterns == [] and addresses == []:
