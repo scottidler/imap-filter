@@ -104,7 +104,7 @@ class IMAPFilter:
 
                 matched = len(uids)
                 print(f"{matched}/{count} messages filtered after completing {message_filter.name}. {count-matched} remaining.")
-                print_filtered_summary(message_filter, matc)
+                print_filtered_summary(message_filter, matched_messages)
             messages = [msg for msg in messages if msg not in matched_messages]
 
     def star(self, uids):
